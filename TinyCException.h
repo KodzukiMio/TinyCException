@@ -121,7 +121,7 @@ void __exp_throw_internal(int code){
 // It's recommended to use the 'ErrorCode' macro to access the thrown error code.
 // Example: CatchCustom(IS_FILE_ERROR(ErrorCode))
 #define CatchCustom(condition) \
-        } else if ((condition) && ((__e_frame.flag & 3) < 2)) { \
+        } else if (((__e_frame.flag & 3) < 2) && (condition)) { \
             __e_frame.error_code = 0; /* Mark as handled */
 
 // Catches a specific exception by its error code.
@@ -131,7 +131,7 @@ void __exp_throw_internal(int code){
 
 // Catches any remaining unhandled exceptions.
 #define CatchAll \
-        } else { \
+        } else if((__e_frame.flag & 3) < 2){ \
             __e_frame.error_code = 0; /* Mark as handled */
 
 // Defines a block of code that will always execute, regardless of whether an exception was thrown.
@@ -154,9 +154,9 @@ void __exp_throw_internal(int code){
 // It captures the file, function, and line number where the exception is thrown.
 #define Throw(e) \
     do { \
+        __exception_detail_s.line = __LINE__; \
         __exception_detail_s.file = __FILE__; \
         __exception_detail_s.func = __FUNCTION__; \
-        __exception_detail_s.line = __LINE__; \
         ++__e_frame.flag;\
         __exp_throw_internal(e); \
     } while(0)
