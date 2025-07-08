@@ -89,12 +89,7 @@ void __exp_throw_internal(int code){
         if (__terminate_handle) __terminate_handle(code);
         // If no Try block is active and no custom handler is set (or it returns),
         // this is an uncaught exception. Print details and abort the program.
-        printf("\n--- UNCAUGHT EXCEPTION ---\n"
-            "Error Code: %d\n"
-            "At -> %s\n"
-            "Func -> %s\n"
-            "Line -> %d\n"
-            "--- PROGRAM WILL ABORT ---\n",
+        printf("\n--- UNCAUGHT EXCEPTION ---\nError Code: %d\nAt -> %s\nFunc -> %s\nLine -> %d\n--- PROGRAM WILL ABORT ---\n",
             code,__exception_detail_s.file,__exception_detail_s.func,__exception_detail_s.line);
         fflush(stdout);
         abort();
