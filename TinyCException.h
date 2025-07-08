@@ -144,7 +144,7 @@ void __exp_throw_internal(int code){
         } \
         __exp_stack_top = __e_frame.prev; \
         if (__e_frame.error_code != 0) { \
-           if(__exp_stack_top)++__exp_stack_top->flag;\
+           if (__exp_stack_top) ++__exp_stack_top->flag;\
             __exp_throw_internal(__e_frame.error_code); \
         } \
     } while(0)
@@ -156,7 +156,7 @@ void __exp_throw_internal(int code){
         __exception_detail_s.line = __LINE__; \
         __exception_detail_s.file = __FILE__; \
         __exception_detail_s.func = __FUNCTION__; \
-        ++__e_frame.flag;\
+        if (__exp_stack_top) ++__exp_stack_top->flag;\
         __exp_throw_internal(e); \
     } while(0)
 
