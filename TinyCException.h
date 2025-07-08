@@ -21,6 +21,8 @@
 *       ...
 *   } Catch(e2) {
 *       ...
+*   } CatchCustom(...) {
+*       ...
 *   } CatchAll {
 *       ...
 *   } Finally {
@@ -28,8 +30,8 @@
 *   } End;
 *
 * NOTES:
-*   - Chaining multiple 'Catch' blocks is supported.
-*   - 'CatchAll' and 'Finally' are optional.
+*   - Chaining multiple 'Catch' and 'CatchCustom' blocks is supported.
+*   - 'CatchAll' and 'Finally' and 'CatchCustom' are optional.
 *   - The exception code 'e' must be a non-zero integer.
 *   - Do not use 'goto' to jump across scopes within an exception block.
 *   - Use 'volatile' for local variables modified in 'Try' if they are accessed in 'Catch'.
@@ -41,7 +43,7 @@
 
 // The exception frame structure.
 // It's a linked list node, forming a stack of exception contexts for each thread.
-typedef struct __exp_frame_t {
+typedef struct __exp_frame_t{
     short flag;                  // Flag to ensure 'Finally' block executes only once.
     int error_code;              // Stores the exception code if one is thrown.
     struct __exp_frame_t* prev;  // Pointer to the previous (outer) exception frame.
@@ -53,15 +55,15 @@ typedef struct __exp_frame_t {
 thread_local static __exp_frame* __exp_stack_top = NULL;
 
 // A thread-local array to store details (file, function, line) for uncaught exceptions.
-thread_local static const char* __exception_detail[3] = {0, 0, 0};
+thread_local static const char* __exception_detail[3] = {0,0,0};
 
 // Internal function to handle the actual throwing logic.
-void __exp_throw_internal(int code) {
-    if (__exp_stack_top) {
+void __exp_throw_internal(int code){
+    if (__exp_stack_top){
         // If we are inside a Try block, store the error code and jump.
         __exp_stack_top->error_code = code;
-        longjmp(__exp_stack_top->buf, 1);
-    } else {
+        longjmp(__exp_stack_top->buf,1);
+    } else{
         // If no Try block is active, this is an uncaught exception.
         // Print details and abort the program.
         printf("\n--- UNCAUGHT EXCEPTION ---\n"
@@ -70,7 +72,7 @@ void __exp_throw_internal(int code) {
             "Func -> %s\n"
             "Line -> %d\n"
             "--- PROGRAM WILL ABORT ---\n",
-            code, __exception_detail[0], __exception_detail[1], (int)(__exception_detail[2]));
+            code,__exception_detail[0],__exception_detail[1],(int)(__exception_detail[2]));
         fflush(stdout);
         abort();
     }
@@ -85,6 +87,18 @@ void __exp_throw_internal(int code) {
         __e_frame.error_code = 0; \
         __e_frame.flag = 0; \
         if (setjmp(__e_frame.buf) == 0) {
+
+// A convenience macro to access the current exception code within a CatchCustom block.
+#define ErrorCode __e_frame.error_code
+
+// Catches an exception based on a custom user-defined condition.
+// This provides advanced, flexible exception matching beyond simple equality.
+// The condition can be any valid C expression that evaluates to true or false.
+// It's recommended to use the 'ErrorCode' macro to access the thrown error code.
+// Example: CatchCustom(IS_FILE_ERROR(ErrorCode))
+#define CatchCustom(condition) \
+        } else if (condition) { \
+            __e_frame.error_code = 0; // Mark as handled
 
 // Catches a specific exception by its error code.
 #define Catch(e) \
