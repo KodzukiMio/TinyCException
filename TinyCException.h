@@ -85,7 +85,6 @@ void __exp_throw_internal(int code){
         __exp_stack_top->error_code = code;
         longjmp(__exp_stack_top->buf,1);
     } else{
-    error:
         // If a custom terminate handler is set, call it.
         if (__terminate_handle) __terminate_handle(code);
         // If no Try block is active and no custom handler is set (or it returns),
