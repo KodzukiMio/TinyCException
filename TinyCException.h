@@ -85,6 +85,7 @@ void __exp_throw_internal(int code){
         __exp_stack_top->error_code = code;
         longjmp(__exp_stack_top->buf,1);
     } else{
+    error:
         // If a custom terminate handler is set, call it.
         if (__terminate_handle) __terminate_handle(code);
         // If no Try block is active and no custom handler is set (or it returns),
@@ -120,12 +121,12 @@ void __exp_throw_internal(int code){
 // It's recommended to use the 'ErrorCode' macro to access the thrown error code.
 // Example: CatchCustom(IS_FILE_ERROR(ErrorCode))
 #define CatchCustom(condition) \
-        } else if (condition) { \
+        } else if (condition && ((__e_frame.flag & 3) < 2)) { \
             __e_frame.error_code = 0; /* Mark as handled */
 
 // Catches a specific exception by its error code.
 #define Catch(e) \
-        } else if (__e_frame.error_code == (e)) { \
+        } else if (__e_frame.error_code == (e) && ((__e_frame.flag & 3) < 2)) { \
             __e_frame.error_code = 0; /* Mark as handled */
 
 // Catches any remaining unhandled exceptions.
@@ -136,8 +137,8 @@ void __exp_throw_internal(int code){
 // Defines a block of code that will always execute, regardless of whether an exception was thrown.
 #define Finally \
         } \
-        if (!__e_frame.flag) { \
-            __e_frame.flag = 1;
+        if (!(__e_frame.flag & 4)) { \
+            __e_frame.flag |= 4;
 
 // Ends the exception block. Pops the frame and re-throws if an error was not handled.
 #define End \
@@ -155,6 +156,7 @@ void __exp_throw_internal(int code){
         __exception_detail_s.file = __FILE__; \
         __exception_detail_s.func = __FUNCTION__; \
         __exception_detail_s.line = __LINE__; \
+        ++__e_frame.flag;\
         __exp_throw_internal(e); \
     } while(0)
 
