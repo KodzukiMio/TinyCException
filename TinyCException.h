@@ -121,7 +121,7 @@ void __exp_throw_internal(int code){
 // It's recommended to use the 'ErrorCode' macro to access the thrown error code.
 // Example: CatchCustom(IS_FILE_ERROR(ErrorCode))
 #define CatchCustom(condition) \
-        } else if (condition && ((__e_frame.flag & 3) < 2)) { \
+        } else if ((condition) && ((__e_frame.flag & 3) < 2)) { \
             __e_frame.error_code = 0; /* Mark as handled */
 
 // Catches a specific exception by its error code.
@@ -145,6 +145,7 @@ void __exp_throw_internal(int code){
         } \
         __exp_stack_top = __e_frame.prev; \
         if (__e_frame.error_code != 0) { \
+           if(__exp_stack_top)++__exp_stack_top->flag;\
             __exp_throw_internal(__e_frame.error_code); \
         } \
     } while(0)
