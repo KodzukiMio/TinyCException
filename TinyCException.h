@@ -54,8 +54,12 @@ typedef struct __exp_frame_t{
 // This is the key to making the library thread-safe.
 thread_local static __exp_frame* __exp_stack_top = NULL;
 
-// A thread-local array to store details (file, function, line) for uncaught exceptions.
-thread_local static const char* __exception_detail[3] = {0,0,0};
+// A thread-local struct to store details (file, function, line) for uncaught exceptions.
+thread_local static struct{
+    const char* file;
+    const char* func;
+    int line;
+} __exception_detail_s = {0,0,0};
 
 // A thread-local function pointer for a custom terminate handler.
 // If set, it will be called for uncaught exceptions instead of the default behavior.
@@ -91,7 +95,7 @@ void __exp_throw_internal(int code){
             "Func -> %s\n"
             "Line -> %d\n"
             "--- PROGRAM WILL ABORT ---\n",
-            code,__exception_detail[0],__exception_detail[1],(int)(__exception_detail[2]));
+            code,__exception_detail_s.file,__exception_detail_s.func,__exception_detail_s.line);
         fflush(stdout);
         abort();
     }
@@ -148,9 +152,9 @@ void __exp_throw_internal(int code){
 // It captures the file, function, and line number where the exception is thrown.
 #define Throw(e) \
     do { \
-        __exception_detail[0] = __FILE__; \
-        __exception_detail[1] = __FUNCTION__; \
-        __exception_detail[2] = (char*)__LINE__; \
+        __exception_detail_s.file = __FILE__; \
+        __exception_detail_s.func = __FUNCTION__; \
+        __exception_detail_s.line = __LINE__; \
         __exp_throw_internal(e); \
     } while(0)
 
