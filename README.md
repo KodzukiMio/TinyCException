@@ -1,18 +1,15 @@
-
 # TinyCException
 
 A modern, header-only, thread-safe exception handling library for C11.
 
 It provides an elegant `Try-Catch-Finally` syntax, allowing for more robust and readable error-handling code without the complexity of larger frameworks.
 
-## Why TinyCException?
-
-Because C deserves better error handling. Traditional error code propagation is tedious and clutters your logic. `TinyCException` offers a clean, centralized way to manage errors, inspired by modern programming languages.
-
 ## ✨ Features
 
 -   **Intuitive Syntax**: `Try { ... } Catch(e) { ... } Finally { ... } End;`
 -   **Flexible `Throw`**: Can be used anywhere for unified error handling.
+-   **Advanced Matching**: Catch exceptions with custom logic using `CatchCustom`.
+-   **Custom Termination**: Set your own handler for uncaught exceptions.
 -   **Header-Only**: Just `#include "TinyCException.h"`.
 -   **Thread-Safe**: Designed for modern, concurrent applications.
 -   **Lightweight & Fast**: Minimal overhead, built on C's `setjmp`/`longjmp`.
@@ -93,7 +90,7 @@ Try {
 ```
 
 #### `CatchAll { ... }`
-A fallback to catch any exception not handled by a specific `Catch`.
+A fallback to catch any exception not handled by a specific `Catch` or `CatchCustom`.
 
 ```c
 Try {
@@ -117,7 +114,34 @@ Try {
 ```
 
 #### `Throw(e)`
-Throws an exception. Can be used anywhere. If outside a `Try` block, it will terminate the program with a detailed report.
+Throws an exception. Can be used anywhere. If outside a `Try` block, it will terminate the program with a detailed report or call a custom terminate handler.
+
+#### `set_exception_terminate_handle(handler_func)` 🚀
+This function allows you to register a custom handler for uncaught exceptions. Instead of printing to `stdout` and calling `abort()`, your custom function will be called. This is useful for custom logging, cleanup, or attempting a graceful shutdown.
+
+The handler function must have the signature `void my_handler(int error_code)`. **Warning: The handler function must not return!**
+
+```c
+#include "TinyCException.h"
+#include <stdio.h>
+
+// Your custom terminate handler
+void custom_terminate(int code) {
+    fprintf(stderr, "CRITICAL FAILURE! Code: %d. Shutting down.\n", code);
+    // Perform custom logging or cleanup here...
+    exit(code); // Terminate the program
+}
+
+int main() {
+    // Register your handler at the start of your program
+    set_exception_terminate_handle(custom_terminate);
+
+    // This will now call custom_terminate() instead of the default
+    Throw(123); 
+
+    return 0;
+}
+```
 
 #### `Return`, `Break`, `Continue`
 Special macros to exit a scope from within a `Try` block. **Warning: They bypass `Finally`!** Manual cleanup is required before use.
