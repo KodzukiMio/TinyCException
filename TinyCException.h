@@ -31,7 +31,7 @@
 *
 * NOTES:
 *   - Chaining multiple 'Catch' and 'CatchCustom' blocks is supported.
-*   - 'CatchAll' and 'Finally' and 'CatchCustom' are optional.
+*   - 'CatchAll', 'Finally', and 'CatchCustom' are optional.
 *   - The exception code 'e' must be a non-zero integer.
 *   - Do not use 'goto' to jump across scopes within an exception block.
 *   - Use 'volatile' for local variables modified in 'Try' if they are accessed in 'Catch'.
@@ -57,15 +57,34 @@ thread_local static __exp_frame* __exp_stack_top = NULL;
 // A thread-local array to store details (file, function, line) for uncaught exceptions.
 thread_local static const char* __exception_detail[3] = {0,0,0};
 
-// Internal function to handle the actual throwing logic.
+// A thread-local function pointer for a custom terminate handler.
+// If set, it will be called for uncaught exceptions instead of the default behavior.
+thread_local static const void (*__terminate_handle)(int) = NULL;
+
+/**
+* @brief Sets a custom handler function for uncaught exceptions.
+* @param terminate_handle A function pointer that takes an integer (the error code) and returns void.
+*                         The handler should not return. Pass NULL to reset to default.
+*/
+void set_exception_terminate_handle(void (*terminate_handle)(int)){
+    __terminate_handle = terminate_handle;
+}
+
+/**
+* @brief Internal function to handle the actual throwing logic.
+*        It's not meant to be called directly by the user.
+* @param code The integer exception code to be thrown.
+*/
 void __exp_throw_internal(int code){
     if (__exp_stack_top){
         // If we are inside a Try block, store the error code and jump.
         __exp_stack_top->error_code = code;
         longjmp(__exp_stack_top->buf,1);
     } else{
-        // If no Try block is active, this is an uncaught exception.
-        // Print details and abort the program.
+        // If a custom terminate handler is set, call it.
+        if (__terminate_handle) __terminate_handle(code);
+        // If no Try block is active and no custom handler is set (or it returns),
+        // this is an uncaught exception. Print details and abort the program.
         printf("\n--- UNCAUGHT EXCEPTION ---\n"
             "Error Code: %d\n"
             "At -> %s\n"
@@ -98,19 +117,19 @@ void __exp_throw_internal(int code){
 // Example: CatchCustom(IS_FILE_ERROR(ErrorCode))
 #define CatchCustom(condition) \
         } else if (condition) { \
-            __e_frame.error_code = 0; // Mark as handled
+            __e_frame.error_code = 0; /* Mark as handled */
 
 // Catches a specific exception by its error code.
 #define Catch(e) \
         } else if (__e_frame.error_code == (e)) { \
-            __e_frame.error_code = 0; // Mark as handled
+            __e_frame.error_code = 0; /* Mark as handled */
 
 // Catches any remaining unhandled exceptions.
 #define CatchAll \
         } else { \
-            __e_frame.error_code = 0; // Mark as handled
+            __e_frame.error_code = 0; /* Mark as handled */
 
-// Defines a block of code that will always execute.
+// Defines a block of code that will always execute, regardless of whether an exception was thrown.
 #define Finally \
         } \
         if (!__e_frame.flag) { \
@@ -126,6 +145,7 @@ void __exp_throw_internal(int code){
     } while(0)
 
 // Throws an exception with a given error code.
+// It captures the file, function, and line number where the exception is thrown.
 #define Throw(e) \
     do { \
         __exception_detail[0] = __FILE__; \
@@ -135,6 +155,7 @@ void __exp_throw_internal(int code){
     } while(0)
 
 // Special macros to exit from a Try block, bypassing Finally.
+// WARNING: These are for performance-critical paths. Manual resource cleanup is required.
 #define Return   { __exp_stack_top = __e_frame.prev; return; }
 #define Break    { __exp_stack_top = __e_frame.prev; break; }
 #define Continue { __exp_stack_top = __e_frame.prev; continue; }
