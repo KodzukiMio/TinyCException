@@ -69,6 +69,29 @@ Try {
 } End;
 ```
 
+#### `CatchCustom(condition)` ✨
+For advanced users, `CatchCustom` allows you to catch exceptions based on a custom boolean condition. This enables powerful matching logic, such as catching a whole category of errors.
+
+Inside the `condition`, you can use the `ErrorCode` macro to access the currently thrown exception code.
+
+```c
+// Let's define a category for file-related errors
+#define IS_FILE_ERROR(code) ((code) >= 200 && (code) < 300)
+
+// In your enum:
+// FileError_NotFound = 201,
+// FileError_PermissionDenied = 202,
+
+Try {
+    Throw(FileError_NotFound);
+} Catch(SomeOtherError) {
+    /* Skipped */
+} CatchCustom(IS_FILE_ERROR(ErrorCode)) {
+    // This block will catch any error code between 200 and 299
+    printf("Caught a generic file error with code: %d\n", ErrorCode);
+} End;
+```
+
 #### `CatchAll { ... }`
 A fallback to catch any exception not handled by a specific `Catch`.
 
