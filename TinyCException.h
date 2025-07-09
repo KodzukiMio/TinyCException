@@ -157,7 +157,8 @@ void __exp_throw_internal(int code){
 
 // Special macros to exit from a Try block, bypassing Finally.
 // WARNING: These are for performance-critical paths. Manual resource cleanup is required.
-#define Return   { __exp_stack_top = __e_frame.prev; return; }
+#define Return  {__exp_stack_top = __e_frame.prev;return;}
+#define ReturnV(v)   {__exp_stack_top = __e_frame.prev;return v;}
 #define Break    { __exp_stack_top = __e_frame.prev; break; }
 #define Continue { __exp_stack_top = __e_frame.prev; continue; }
 
